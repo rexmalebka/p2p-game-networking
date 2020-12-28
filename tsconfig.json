@@ -1,0 +1,15 @@
+{
+          "extends": "@tsconfig/recommended/tsconfig.json",
+          "compilerOptions": {
+                  "preserveConstEnums": true,
+                  "removeComments": true,
+                  "outDir": "build",
+                  "noImplicitAny": false,
+		  "moduleResolution": "node",
+		  "forceConsistentCasingInFileNames": false,
+		  "strictFunctionTypes": false
+          },
+          "lib": [ "es2019", "dom"],
+          "include": ["src/app/*"],
+          "exclude": ["node_modules", "**/*.spec.ts"]
+}

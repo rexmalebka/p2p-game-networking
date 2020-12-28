@@ -1,0 +1,12 @@
+{
+          "extends": "@tsconfig/recommended/tsconfig.json",
+          "compilerOptions": {
+                  "preserveConstEnums": true,
+                  "removeComments": true,
+                  "outDir": "../../server",
+                  "noImplicitAny": false
+          },
+          "lib": [ "commonjs", "dom" ],
+          "include": ["*"],
+          "exclude": ["node_modules", "**/*.spec.ts"]
+}
