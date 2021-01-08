@@ -2,10 +2,12 @@
 const express = require('express');
 const { ExpressPeerServer } = require('peer');
 const bodyParser = require("body-parser");
+const compress = require('compression');
 const app = express();
 const Users = {
     "default": []
 };
+app.use(compress());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 app.use('/', express.static('../static'));

@@ -1,12 +1,14 @@
 const express = require('express');
 const { ExpressPeerServer } = require('peer');
 const bodyParser = require("body-parser");
+const compress = require('compression');
 
 const app = express()
 const Users: {[key:string] : string[]} = {
 	"default":[]
 }
 
+app.use(compress());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 

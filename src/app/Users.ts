@@ -40,60 +40,73 @@ export class User {
 		}
 	}
 
-	move(pos:THREE.Vector3){
-		if(pos != this.#position && pos.constructor == THREE.Vector3){
-			this.#position = pos
+	set position(value){
+		if(Array.isArray(value) && value.length == 3 && value.every(x => !isNaN(x))){
+			this.#position.set(...value)
+
 			let evt = new CustomEvent('moveUser',{
 				detail: {
 					id: this.#id,
-					position: pos
+					position: this.#position
 				}
 			})
 			dispatchEvent(evt)
 		}
 	}
 	
-	rotate(rot:THREE.Vector3){
-		if(rot != this.#rotation && rot.constructor == THREE.Vector3){
-			this.#rotation = rot
+	set rotation(value){
+		if(Array.isArray(value) && value.length == 3 && value.every(x => !isNaN(x))){
+			this.#rotation.set(...value)
+
 			let evt = new CustomEvent('rotateUser',{
 				detail: {
 					id: this.#id,
-					rotation:rot
-				}
-			})
-			dispatchEvent(evt)
-		}
-	}
-	
-	change(prop, value){
-		if(this.#metadata.hasOwnProperty(prop) && this.#metadata[prop] != value){
-			this.#metadata[prop] = value
-			let evt = new CustomEvent('changeUser',{
-				detail: {
-					id: this.#id,
-					prop:prop,
-					value: value
+					rotation:this.#rotation
 				}
 			})
 			dispatchEvent(evt)
 		}
 	}
 
+	set metadata(value){
+		if(value.constructor == Object){
+			for(let k in value){
+				if(this.#metadata.hasOwnProperty(k) && this.#metadata[k] != value[k]){
+					this.#metadata[k] = value[k]
+
+					let evt = new CustomEvent('changeUser',{
+						detail: {
+							id: this.#id,
+							prop:k,
+							value: value[k]
+						}
+					})
+					dispatchEvent(evt)
+				}
+			}
+		}
+	}
+	describe(){
+		return {
+			nickname:this.#nickname,
+			position: [this.#position.x, this.#position.y, this.#position.z],
+			rotation: [this.#rotation.x, this.#rotation.y, this.#rotation.z],
+			metadata: this.#metadata
+		}
+	}
+	send(data){
+		if(data){
+			this.#conn.send(data)
+		}
+	}
+
 	constructor(id, conn){
 		this.#id = id
 		this.#conn = conn
-		this.#nickname = `${initials.nickname}${this.#id}`
+		this.#nickname = `${initials.nickname_pre}-${this.#id}`
 		this.#position = initials.position
 		this.#rotation = initials.rotation
 		this.#metadata = initials.metadata
-		
-		let evt:CustomEvent = new CustomEvent('addUser',{
-			detail: {
-				id: this.#id,
-			}
-		})
-		dispatchEvent(evt)
 	}
 }
 export const Users :Users= {	
@@ -106,8 +119,8 @@ window.addEventListener('addUser', function(evt: CustomEvent){
 	console.info(`new peer (${id}) `)
 })
 
-window.addEventListener('moveUser', function(evt: CustomEvent){
+window.addEventListener('removeUser', function(evt: CustomEvent){
 	let id = evt.detail.id
-	console.info(" user moving eveent")
+	console.info(`peer left ${id}`)
 })
 

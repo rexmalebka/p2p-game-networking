@@ -2,7 +2,7 @@ import Peer from "peerjs"
 import {Users} from './Users'
 import {User} from './Users'
 import {Chat} from "./Chat"
-import {initials} from './Config'
+import {initials, recoverUser} from './Config'
 
 declare global {
 	interface Window { Server: any }
@@ -21,7 +21,8 @@ export interface Server {
 export const Server :Server = {
 	config: {},
 	init: function(config: any){
-		const peer = new  Peer(config.id,{
+		const user_skel = recoverUser()
+		const peer = new Peer(config.id,{
 			host: "127.0.0.1",
 			port: 3000,
 			path: "/net"
@@ -34,14 +35,46 @@ export const Server :Server = {
 		peer.on('open', function(id) {
 			console.log('My peer ID is: ' + id);	
 			Users.me = new User(id, peer)
+
+			let evt:CustomEvent = new CustomEvent('addUser',{
+				detail: {
+					id: Users.me.id
+				}
+			})
+			dispatchEvent(evt)
+
+			for(let k in user_skel){
+				Users.me[k] = user_skel[k]
+			}
+
 			peer.on('connection', function(conn){
 				
 				if(!Users.hasOwnProperty(conn.peer)){
 					Users[conn.peer] = new User(conn.peer, conn)
+					
+					let evt:CustomEvent = new CustomEvent('addUser',{
+						detail: {
+							id: Users[conn.peer].id,
+						}
+					})
+					dispatchEvent(evt)
+
+
+					conn.on('open',function(){
+						Users[conn.peer].send(Users.me.describe())
+					})
 
 					conn.on('close', function(){
-						console.info(`peer left: "${conn.peer}" `)
+						console.debug("closing peer", conn)
+						let user = Users[conn.peer].describe()
+						user.id = Users[conn.peer].id
 						delete Users[conn.peer]
+						
+						let evt = new CustomEvent('removeUser',{
+							detail: user 
+						})
+						dispatchEvent(evt)
+
 					})
 
 					conn.on('data', function(data){
@@ -51,22 +84,47 @@ export const Server :Server = {
 			})
 		});
 
+		peer.on('error', function(reason){
+			let evt = new CustomEvent('peerError',{
+				detail: {
+					peer: peer,
+					reaason: reason
+				}
+			})
+			dispatchEvent(evt)
+		})
+
 		this.discover().then((peers)=>{
 			peers.forEach((peer_id)=>{
 				let conn = peer.connect(peer_id)
 				conn.on('open', function(){
 					Users[peer_id] = new User(peer_id, conn)
 					
-			Server.introduce()
-					conn.on('close', function(){
-						console.info(`peer left: "${peer_id}" `)
-						delete Users[peer_id]
+					let evt:CustomEvent = new CustomEvent('addUser',{
+						detail: {
+							id: Users[peer_id].id,
+						}
 					})
+					dispatchEvent(evt)
+					
+					Server.introduce()
+
 
 					conn.on('data', function(data){
 						Server.dataHandler(conn, data)
 					})
 				})
+
+					conn.on('close', function(){
+						let user = Users[conn.peer].describe()
+						user.id = Users[conn.peer].id
+						delete Users[conn.peer]
+						
+						let evt = new CustomEvent('removeUser',{
+							detail: user 
+						})
+						dispatchEvent(evt)
+					})
 			})
 		})
 	}, 
@@ -93,22 +151,55 @@ export const Server :Server = {
 	},
 	introduce: function(){
 		const id = this.config.id
+
 		for(let k in Users){
 			if(k!="me"){
-				let conn = Users[k].conn
-				let data = {}
-				for(const l of Object.keys(initials)){
-					data[l] = Users[k][l]
-				}
-				console.debug("***",data)
+				Users[k].send(Users.me.describe())
 			}
 		}
 	},
 	dataHandler: function(conn, data){
 		if(data.constructor == String ){
+			// simple chat
 			Chat.receive(conn.peer,data)
+		}else if(data.constructor == Object){
+			// send user information
+			for(const [k,v] of Object.entries(data)){
+				Users[conn.peer][k] = v
+			}
+		}else if(data.constructor == Blob){
+			// sending custom glb avatar
 		}
 	}
 }
 
 window.Server = Server
+
+window.addEventListener('renameUser', function(event: CustomEvent){
+	const id = event.detail.id
+	if(id == (Server.peer as Peer).id){
+		for(let k in Users){
+			if(k != "me") Users[k].send({nickname: event.detail.nickname})
+		}
+	}
+})
+
+window.addEventListener('moveUser', function(event: CustomEvent){
+	const id = event.detail.id
+	if(id == (Server.peer as Peer).id){
+		const  pos = event.detail.position
+		for(let k in Users){
+			if(k != "me") Users[k].send({position: [pos.x, pos.y, pos.z]})
+		}
+	}
+})
+
+window.addEventListener('rotateUser', function(event: CustomEvent){
+	const id = event.detail.id
+	if(id == (Server.peer as Peer).id){
+		const  rot = event.detail.rotation
+		for(let k in Users){
+			if(k != "me") Users[k].send({position: [rot.x, rot.y, rot.z]})
+		}
+	}
+})

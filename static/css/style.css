@@ -1,0 +1,21 @@
+#container{
+	display: flex;
+	flex-direction: row;
+	flex-basis: 100%;
+	flex: 1;
+}
+#chat{
+	display:flex;
+	flex-direction: column;
+	flex-basis:100%;
+	flex:1;
+	height:500px;
+	background-color:beige;
+}
+#scene{
+	display:flex;
+	flex-direction: column;
+	flex-basis:100%;
+	flex:3;
+	height:500px;
+}

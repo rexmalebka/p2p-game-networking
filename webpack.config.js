@@ -1,5 +1,7 @@
 const path = require('path')
 const nodeExternals = require('webpack-node-externals');
+const CompressionPlugin = require("compression-webpack-plugin");
+
 
 
 const config = {
@@ -21,21 +23,20 @@ const config = {
 const app = Object.assign({}, config, {
 	name: 'p2p-game-net-app',
 	entry: './src/app/main.ts',
+	plugins: [new CompressionPlugin()],
 	output: {
 		path: path.resolve( __dirname, 'static/js' ),
-		filename: 'main.js'
+		filename: 'network.js'
 	}
 })
 
-const server = Object.assign({}, config, {
-	name: 'p2p-game-net-server',
-	entry: './src/server/main.ts',
+const demo = Object.assign({}, config,{
+	name: 'p2p-game-net-demo',
+	entry: './src/demo/main.ts',
 	output: {
-		path: path.resolve( __dirname, 'server' ),
-		filename: 'main.js'
+		path: path.resolve( __dirname, 'static/js'),
+		filename: 'demo.js'
 	},
-	externals: [nodeExternals()],
-
 })
 
-module.exports = [app]
+module.exports = [app, demo]
